@@ -1,0 +1,5 @@
+{
+  "name": "chaosdating",
+  "description": "A cute and lovely dating app for Gen Z, built with React, Tailwind CSS, and Supabase for seamless authentication and user profiles.",
+  "requestFramePermissions": []
+}

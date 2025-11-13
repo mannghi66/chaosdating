@@ -13,8 +13,8 @@ export interface Profile {
 
 export interface Action {
     id?: number;
-    user_id: string; // Renamed from swiper_user_id
-    target_user_id: string; // Renamed from swiped_user_id
-    action_type: 'like' | 'dislike'; // Renamed from action, 'pass' is now 'dislike'
+    user_id: string; // The user performing the action
+    target_id: string; // The user being acted upon
+    action_type: 'like' | 'dislike';
     created_at?: string;
 }

@@ -59,6 +59,13 @@ const Discovery: React.FC<DiscoveryProps> = ({ session }) => {
   const analyzeCompatibility = useCallback(async (myUserProfile: Profile, otherProfile: Profile) => {
     if (!ai) return;
 
+    // Set a loading state
+    setProfiles(currentProfiles =>
+      currentProfiles.map(p =>
+        p.id === otherProfile.id ? { ...p, gemini_analysis: 'loading' } : p
+      )
+    );
+
     const prompt = `
       Based on these two dating profiles, provide a short, fun, and quirky compatibility analysis (max 40 words).
       My Profile:
@@ -87,6 +94,16 @@ const Discovery: React.FC<DiscoveryProps> = ({ session }) => {
       );
     } catch (error) {
       console.error("Error with Gemini API:", error);
+      let errorMessage = "Oops! Gemini is sleeping on the job. Try again later.";
+      if (error instanceof Error && error.message.toLowerCase().includes('fetch')) {
+          errorMessage = "Network issue! Couldn't reach Gemini. Please check your connection.";
+      }
+      // Set an error state
+      setProfiles(currentProfiles =>
+        currentProfiles.map(p =>
+          p.id === otherProfile.id ? { ...p, gemini_analysis: errorMessage } : p
+        )
+      );
     }
   }, [ai]);
 
@@ -110,12 +127,12 @@ const Discovery: React.FC<DiscoveryProps> = ({ session }) => {
     try {
       const { data: actedOnUserIdsData, error: actedOnError } = await supabase
           .from('actions')
-          .select('target_user_id')
+          .select('target_id')
           .eq('user_id', session.user.id);
       
       if (actedOnError) throw actedOnError;
 
-      const actedOnUserIds = actedOnUserIdsData.map(item => item.target_user_id);
+      const actedOnUserIds = actedOnUserIdsData.map(item => item.target_id);
       const excludedIds = [session.user.id, ...actedOnUserIds];
       
       const { data, error } = await supabase
@@ -155,7 +172,7 @@ const Discovery: React.FC<DiscoveryProps> = ({ session }) => {
     try {
       const { error } = await supabase.from('actions').insert({
         user_id: session.user.id,
-        target_user_id: targetUserId,
+        target_id: targetUserId,
         action_type: actionType,
       });
 

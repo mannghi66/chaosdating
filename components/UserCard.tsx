@@ -9,7 +9,7 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ profile, onLike, onDislike, isDemo }) => {
-  const HeartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-1.383-.597 15.218 15.218 0 0 1-4.217-2.734c-1.12-1.14-2.06-2.553-2.753-4.14C.79 11.533 0 9.888 0 8.25c0-4.42 3.58-8 8-8s8 3.58 8 8c0 1.638-.79 3.283-1.928 4.783a15.247 15.247 0 0 1-4.217 2.734 15.218 15.218 0 0 1-1.383.597l-.022.012-.007.003h-.004a.75.75 0 0 1-.65-.632Z" /></svg>;
+  const CheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path fillRule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 0 1 1.04-.208Z" clipRule="evenodd" /></svg>;
   const XMarkIcon = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>;
 
   const calculateAge = (birthDate: string | null): number | null => {
@@ -53,18 +53,28 @@ const UserCard: React.FC<UserCardProps> = ({ profile, onLike, onDislike, isDemo 
             ))}
           </div>
         )}
-        {profile.gemini_analysis && (
-           <div className="mt-4 p-3 bg-pink-500/20 backdrop-blur-sm rounded-lg border border-pink-500/30">
-              <p className="text-sm font-bold text-pink-200">✨ Gemini's Compatibility Analysis</p>
-              <p className="mt-1 text-sm text-pink-100">{profile.gemini_analysis}</p>
-           </div>
-        )}
+        <div className="mt-4 min-h-[96px]"> {/* Wrapper to prevent layout shift */}
+          {profile.gemini_analysis && (
+              <div className="p-3 bg-pink-500/20 backdrop-blur-sm rounded-lg border border-pink-500/30 animate-fade-in">
+                <p className="text-sm font-bold text-pink-200">✨ Gemini's Compatibility Analysis</p>
+                {profile.gemini_analysis === 'loading' ? (
+                  <div className="flex items-center space-x-2 mt-2">
+                      <div className="w-2 h-2 bg-pink-200 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-pink-200 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-pink-200 rounded-full animate-pulse"></div>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-pink-100">{profile.gemini_analysis}</p>
+                )}
+              </div>
+          )}
+        </div>
         <div className="mt-6 flex justify-center gap-8">
           <button onClick={() => onDislike(profile.id)} className="p-4 bg-white/20 rounded-full text-red-400 hover:bg-red-400 hover:text-white transition-colors">
             <XMarkIcon />
           </button>
           <button onClick={() => onLike(profile.id)} className="p-4 bg-white/20 rounded-full text-green-400 hover:bg-green-400 hover:text-white transition-colors">
-            <HeartIcon />
+            <CheckIcon />
           </button>
         </div>
       </div>

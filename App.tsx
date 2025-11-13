@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './services/supabase';
@@ -36,6 +37,15 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+      alert('Error signing out. Please check the console for details.');
+    }
+    // The onAuthStateChange listener will automatically update the session state.
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -54,7 +64,7 @@ const App: React.FC = () => {
             <div>
               <button onClick={() => setView('discovery')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'discovery' ? 'text-primary' : 'text-gray-500 hover:text-primary'}`}>Discovery</button>
               <button onClick={() => setView('profile')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'profile' ? 'text-primary' : 'text-gray-500 hover:text-primary'}`}>Profile</button>
-              <button onClick={() => supabase.auth.signOut()} className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:bg-pink-600">
+              <button onClick={handleSignOut} className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:bg-pink-600">
                 Sign Out
               </button>
             </div>

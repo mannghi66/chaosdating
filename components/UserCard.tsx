@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Profile } from '../types';
 
@@ -56,7 +57,7 @@ const UserCard: React.FC<UserCardProps> = ({ profile, onLike, onDislike, isDemo 
         <div className="mt-4 min-h-[96px]"> {/* Wrapper to prevent layout shift */}
           {profile.gemini_analysis && (
               <div className="p-3 bg-pink-500/20 backdrop-blur-sm rounded-lg border border-pink-500/30 animate-fade-in">
-                <p className="text-sm font-bold text-pink-200">✨ Gemini's Compatibility Analysis</p>
+                <p className="text-sm font-bold text-pink-200">Compatibility Check ✨</p>
                 {profile.gemini_analysis === 'loading' ? (
                   <div className="flex items-center space-x-2 mt-2">
                       <div className="w-2 h-2 bg-pink-200 rounded-full animate-pulse [animation-delay:-0.3s]"></div>

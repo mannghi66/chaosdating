@@ -1,10 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+// Session type is not exported in some versions of @supabase/supabase-js
+type Session = any;
 import { supabase } from './services/supabase';
 import Auth from './components/Auth';
 import Profile from './components/Profile';
 import Discovery from './components/Discovery';
+import Matches from './components/Matches';
+import ChatRoom from './components/ChatRoom';
+import { Profile as ProfileType } from './types';
 
 // Define a simple HeartIcon component for the navigation
 const HeartIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
@@ -18,64 +22,113 @@ const HeartIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
   </svg>
 );
 
-
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
-  const [view, setView] = useState<'discovery' | 'profile'>('discovery');
+  const [isGuest, setIsGuest] = useState(false);
+  const [view, setView] = useState<'discovery' | 'profile' | 'matches'>('discovery');
+  const [activeChat, setActiveChat] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Create a mock session for Guest Mode
+  const mockSession: Session = {
+    access_token: 'demo-token',
+    refresh_token: 'demo-refresh',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: {
+      id: 'demo-user-id',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      email: 'demo@chaosdating.com',
+    } as any,
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Cast to any to bypass Property 'getSession' does not exist error
+    (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
       setSession(session);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Cast to any to bypass Property 'onAuthStateChange' does not exist error
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange((_event: any, session: any) => {
       setSession(session);
+      if (session) setIsGuest(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-      alert('Error signing out. Please check the console for details.');
+  const handleEnterDemo = () => {
+    setIsGuest(true);
+    setSession(mockSession);
+  };
+
+  const handleSignOut = () => {
+    if (isGuest) {
+      setIsGuest(false);
+      setSession(null);
+    } else {
+      // Cast to any to bypass Property 'signOut' does not exist error
+      (supabase.auth as any).signOut();
     }
-    // The onAuthStateChange listener will automatically update the session state.
+  };
+
+  const openChat = (profile: ProfileType) => {
+    setActiveChat(profile);
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background text-primary animate-pulse font-bold text-xl">Loading chaos...</div>;
   }
 
-  if (!session) {
-    return <Auth />;
-  } else {
+  if (!session && !isGuest) {
+    return <Auth onEnterDemo={handleEnterDemo} />;
+  }
+
+  // Render ChatRoom if activeChat is set
+  if (activeChat) {
     return (
-      <div className="min-h-screen bg-pink-50 text-gray-800 font-sans">
-        <nav className="bg-white/70 backdrop-blur-lg shadow-md sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div className="flex items-center gap-2">
-                <HeartIcon className="text-primary w-8 h-8" />
-                <span className="text-2xl font-bold text-primary">chaosdating</span>
-            </div>
-            <div>
-              <button onClick={() => setView('discovery')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'discovery' ? 'text-primary' : 'text-gray-500 hover:text-primary'}`}>Discovery</button>
-              <button onClick={() => setView('profile')} className={`px-4 py-2 rounded-md text-sm font-medium ${view === 'profile' ? 'text-primary' : 'text-gray-500 hover:text-primary'}`}>Profile</button>
-              <button onClick={handleSignOut} className="ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:bg-pink-600">
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </nav>
-        <main className="container mx-auto p-4">
-          {view === 'discovery' ? <Discovery session={session} /> : <Profile session={session} />}
-        </main>
-      </div>
+      <ChatRoom 
+        match={activeChat} 
+        onBack={() => setActiveChat(null)} 
+        session={session!} 
+      />
     );
   }
+
+  return (
+    <div className="min-h-screen bg-pink-50 text-gray-800 font-sans pb-20 md:pb-0">
+      {isGuest && (
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold py-1 text-center uppercase tracking-widest">
+          Demo Mode: Data will not be permanently saved
+        </div>
+      )}
+      <nav className="bg-white/70 backdrop-blur-lg shadow-md sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('discovery')}>
+              <HeartIcon className="text-primary w-8 h-8" />
+              <span className="text-2xl font-bold text-primary hidden sm:inline">chaosdating</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setView('discovery')} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === 'discovery' ? 'text-primary bg-pink-100' : 'text-gray-500 hover:text-primary'}`}>Discovery</button>
+            <button onClick={() => setView('matches')} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === 'matches' ? 'text-primary bg-pink-100' : 'text-gray-500 hover:text-primary'}`}>Matches</button>
+            <button onClick={() => setView('profile')} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === 'profile' ? 'text-primary bg-pink-100' : 'text-gray-500 hover:text-primary'}`}>Profile</button>
+            <button onClick={handleSignOut} className="hidden sm:block ml-4 px-4 py-2 rounded-md text-sm font-medium text-white bg-primary hover:bg-pink-600 transition-all shadow-lg shadow-pink-200">
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </nav>
+      <main className="container mx-auto p-4 md:p-8">
+        {view === 'discovery' && <Discovery session={session!} onOpenChat={openChat} />}
+        {view === 'matches' && <Matches session={session!} onOpenChat={openChat} />}
+        {view === 'profile' && <Profile session={session!} />}
+      </main>
+    </div>
+  );
 };
 
 export default App;

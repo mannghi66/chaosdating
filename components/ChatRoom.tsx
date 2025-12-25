@@ -54,45 +54,59 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ match, session, onBack }) => {
   }, [messages, isTyping]);
 
   const generateAIResponse = async (userMessage: string, history: Message[]) => {
-    if (!process.env.API_KEY) return;
+    // Khởi tạo AI ngay trước khi dùng để đảm bảo lấy đúng API_KEY từ môi trường
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      console.error("API_KEY is missing from environment variables.");
+      return;
+    }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     setIsTyping(true);
 
-    // Format history for context - limited to last 10 for performance/token limits
-    const recentHistory = history.slice(-10).map(msg => {
+    // Format lịch sử trò chuyện để model hiểu ngữ cảnh
+    const recentHistory = history.slice(-6).map(msg => {
       const sender = msg.senderId === session.user.id ? 'User' : match.username;
       return `${sender}: ${msg.text}`;
     }).join('\n');
 
-    const prompt = `
+    const systemInstruction = `
       You are roleplaying as a user on a dating app called "chaosdating".
-      
-      Persona Information:
+      Persona:
       - Username: ${match.username}
-      - Bio: ${match.bio}
-      - Interests: ${(match.interests || []).join(', ')}
+      - Bio: ${match.bio || 'A mysterious person looking for fun.'}
+      - Interests: ${(match.interests || []).join(', ') || 'Surprises, chatting, life.'}
 
-      CRITICAL TASK: Provide a response that is HIGHLY RELEVANT to the current conversation. 
-      If the user asked a question, answer it. If they shared something, react to it.
-      Refer to past messages in the history if applicable.
+      CRITICAL RULES:
+      1. Always stay in character as ${match.username}.
+      2. Respond briefly (max 20 words).
+      3. Be flirty, quirky, and Gen-Z friendly.
+      4. Respond in the same language as the user (Vietnamese if they speak Vietnamese).
+      5. Do not use generic assistant prefixes like "As an AI...".
+    `;
 
-      Conversation History:
+    const prompt = `
+      Current Chat Context:
       ${recentHistory}
-      
-      Your Goal: Write a short (max 25 words), engaging, and flirty response as ${match.username}.
-      Language: English. No robotic prefixes.
+
+      Write the next message from ${match.username} to the User.
     `;
 
     try {
-      await new Promise(r => setTimeout(r, 1500));
+      // Giả lập độ trễ để tăng cảm giác thật
+      await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.9,
+          topP: 0.95,
+        }
       });
 
-      const aiText = response.text || "That sounds amazing! Tell me more? 😊";
+      const aiText = response.text?.trim() || "Hmm, I'm thinking of something clever to say... 😉";
 
       const newMessage: Message = {
         id: Date.now().toString(),
@@ -104,6 +118,14 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ match, session, onBack }) => {
       setMessages(prev => [...prev, newMessage]);
     } catch (error) {
       console.error("Chat AI error:", error);
+      // Fallback message nếu lỗi API
+      const fallbackMsg: Message = {
+        id: Date.now().toString(),
+        senderId: match.id,
+        text: "Mạng của tớ hơi lag một chút, tớ sẽ rep cậu sau nhé! 💌",
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, fallbackMsg]);
     } finally {
       setIsTyping(false);
     }
